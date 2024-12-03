@@ -1,0 +1,141 @@
+---
+- name: "Check & Install Elyra"
+  hosts: localhost
+  become: true
+
+  tasks:
+    ##########################################################
+    # 1. Check environment dependencies for Elyra
+    ##########################################################
+    - name: Check if python3 is installed
+      command: python3 --version
+      register: python3_check
+      changed_when: false
+      failed_when: false
+
+    - name: python3 version/path
+      debug:
+        msg: >
+          Python3 is {{ 'installed' if python3_check.rc == 0 else 'not installed' }}.
+          Version (if installed): {{ python3_check.stdout | default('N/A') }}
+
+    - name: check if python3 is present 
+      apt:
+        name: python3
+        state: present
+      when: python3_check.rc != 0
+
+    - name: Check if pip3 is installed
+      command: pip3 --version
+      register: pip3_check
+      changed_when: false
+      failed_when: false
+
+    - name: Log pip3 version
+      debug:
+        msg: >
+          pip3 is {{ 'installed' if pip3_check.rc == 0 else 'not installed' }}.
+          Version (if installed): {{ pip3_check.stdout | default('N/A') }}
+
+    - name: check python3-pip is present (if not installed)
+      apt:
+        name: python3-pip
+        state: present
+      when: pip3_check.rc != 0
+
+    - name: Check if nodejs is installed
+      command: nodejs --version
+      register: nodejs_check
+      changed_when: false
+      failed_when: false
+
+    - name: check nodejs version
+      debug:
+        msg: >
+          nodejs is {{ 'installed' if nodejs_check.rc == 0 else 'not installed' }}.
+          Version (if installed): {{ nodejs_check.stdout | default('N/A') }}
+
+    - name: check if nodejs is present (if not installed)
+      apt:
+        name: nodejs
+        state: present
+      when: nodejs_check.rc != 0
+
+    - name: Check if npm is installed
+      command: npm --version
+      register: npm_check
+      changed_when: false
+      failed_when: false
+
+    - name: check npm version
+      debug:
+        msg: >
+          npm is {{ 'installed' if npm_check.rc == 0 else 'not installed' }}.
+          Version (if installed): {{ npm_check.stdout | default('N/A') }}
+
+    - name: check npm is present (if not installed)
+      apt:
+        name: npm
+        state: present
+      when: npm_check.rc != 0
+
+    ####################################################
+    # 2. Check JupyterLab setup (for checking compatibility)
+    ####################################################
+    - name: Check jupyter-lab in PATH
+      command: which jupyter-lab
+      register: jlab_path
+      changed_when: false
+      failed_when: false
+
+    - name: print JupyterLab path
+      debug:
+        msg: "JupyterLab path: {{ jlab_path.stdout if jlab_path.stdout else 'Not found' }}"
+
+    - name: Check jupyter-lab version
+      command: jupyter-lab --version
+      register: jlab_version
+      changed_when: false
+      failed_when: false
+
+    - name: check JupyterLab version
+      debug:
+        msg: >
+          JupyterLab is {{ 'installed' if jlab_version.rc == 0 else 'not installed' }}.
+          Version (if installed): {{ jlab_version.stdout | default('N/A') }}
+
+    - name: Install jupyterlab only if not already installed
+      pip:
+        name: jupyterlab
+        executable: pip3
+      when: jlab_version.rc != 0
+
+    ##################################################
+    # 3. Check Elyra + install                        #
+    ##################################################
+    - name: Check if elyra is installed
+      command: pip3 show elyra
+      register: elyra_check
+      changed_when: false
+      failed_when: false
+
+    - name: check Elyra pip info
+      debug:
+        msg: >
+          Elyra is {{ 'installed' if elyra_check.rc == 0 else 'not installed' }}.
+          Info (if installed): {{ elyra_check.stdout | default('N/A') }}
+
+    - name: Install Elyra (only if not installed
+      pip:
+        name: elyra
+        executable: pip3
+      when: elyra_check.rc != 0
+
+    ##################################################
+    # 4. Restart JupyterHub if applicable           #
+    ##################################################
+    - name: Restart JupyterHub
+      systemd:
+        name: jupyterhub
+        state: restarted
+      ignore_errors: true
