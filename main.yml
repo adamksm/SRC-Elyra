@@ -79,6 +79,23 @@
         state: present
       when: npm_check.rc != 0
 
+    ##########################################################
+    # 2. Install TensorFlow and PyTorch
+    ##########################################################
+    - name: Install TensorFlow
+      pip:
+        name: tensorflow
+        state: latest
+      become: true
+
+    - name: Install PyTorch
+      pip:
+        name: torch
+        extra_args: --index-url https://download.pytorch.org/whl/cpu
+        state: latest
+      become: true
+
+
     ####################################################
     # 2. Check JupyterLab setup (for checking compatibility)
     ####################################################
