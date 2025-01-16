@@ -80,6 +80,18 @@
       when: npm_check.rc != 0
 
     ##########################################################
+    # 2. Use cuDNN script (for compatibility purposes)
+    ##########################################################
+    - name: Copy CUDA/cuDNN integration script to /tmp
+      copy:
+        src: files/cuDNN_integration.sh
+        dest: /tmp/cuDNN_integration.sh
+        mode: '0755'
+
+    - name: Run CUDA/cuDNN integration script
+      command: /tmp/cuDNN_integration.sh
+
+    ##########################################################
     # 2. Install TensorFlow and PyTorch
     ##########################################################
     - name: Install TensorFlow
