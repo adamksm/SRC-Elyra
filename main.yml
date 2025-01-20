@@ -5,7 +5,7 @@
 
   tasks:
     ##########################################################
-    # 1. Check environment dependencies for Elyra
+    # 1.0 Check environment dependencies for Elyra
     ##########################################################
     - name: Check if python3 is installed
       command: python3 --version
@@ -80,19 +80,38 @@
       when: npm_check.rc != 0
 
     ##########################################################
-    # 2. Use cuDNN script (for compatibility purposes)
+    # 1.1 Check for GPU presence
+    ##########################################################
+    - name: Check if GPU is present
+      command: lspci | grep -i nvidia
+      register: gpu_check
+      changed_when: false
+      failed_when: false
+
+    - name: Set GPU presence variable
+      set_fact:
+        gpu_present: "{{ 'yes' if gpu_check.rc == 0 else 'no' }}"
+
+    - name: Log GPU presence
+      debug:
+        msg: "GPU detected: {{ gpu_present == 'yes' }}"
+
+    ##########################################################
+    # 2.0 Use cuDNN script (if GPU is present)
     ##########################################################
     - name: Copy CUDA/cuDNN integration script to /tmp
       copy:
         src: files/cuDNN_integration.sh
         dest: /tmp/cuDNN_integration.sh
         mode: '0755'
+      when: gpu_present == 'yes'
 
     - name: Run CUDA/cuDNN integration script
       command: /tmp/cuDNN_integration.sh
+      when: gpu_present == 'yes'
 
     ##########################################################
-    # 2. Install TensorFlow and PyTorch
+    # 2.1 Install TensorFlow and PyTorch
     ##########################################################
     - name: Install TensorFlow
       pip:
@@ -103,13 +122,12 @@
     - name: Install PyTorch
       pip:
         name: torch
-        extra_args: --index-url https://download.pytorch.org/whl/cpu
         state: latest
       become: true
 
 
     ####################################################
-    # 2. Check JupyterLab setup (for checking compatibility)
+    # 3.0 Check JupyterLab setup (for checking compatibility)
     ####################################################
     - name: Check jupyter-lab in PATH
       command: which jupyter-lab
@@ -140,7 +158,7 @@
       when: jlab_version.rc != 0
 
     ##################################################
-    # 3. Check Elyra + install                        #
+    # 3.1 Check Elyra + install                        #
     ##################################################
     - name: Check if elyra is installed
       command: pip3 show elyra
@@ -161,7 +179,7 @@
       when: elyra_check.rc != 0
 
     ##################################################
-    # 4. Restart JupyterHub if applicable           #
+    # 4.0 Restart JupyterHub if applicable           #
     ##################################################
     - name: Restart JupyterHub
       systemd:
